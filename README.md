@@ -19,7 +19,7 @@ Download the current release from the [Releases page](https://github.com/BaikalM
 Use a Keryx stratum URL and `keryx:` wallet. OPoI models are selected from GPU VRAM and verified before use.
 
 ```bat
-InterMiner.exe --keryxd-address stratum+tcp://krx.baikalmine.com:9020 --threads 0 --mining-address keryx:YOUR_WALLET.YOUR_WORKER
+InterMiner.exe --threads 0 -s stratum+tcp://krx.baikalmine.com:9020 -a keryx:YOUR_WALLET.YOUR_WORKER
 ```
 
 ### CryptixHash v2
@@ -27,7 +27,7 @@ InterMiner.exe --keryxd-address stratum+tcp://krx.baikalmine.com:9020 --threads 
 Use a Cryptix stratum URL and `cryptix:` wallet. OPoI is disabled for this profile.
 
 ```bat
-InterMiner.exe --cryptix-address stratum+tcp://cytx.baikalmine.com:9010 --mining-address cryptix:YOUR_WALLET.YOUR_WORKER
+InterMiner.exe --algorithm cryptixhash --threads 0 -s stratum+tcp://cytx.baikalmine.com:9010 -a cryptix:YOUR_WALLET.YOUR_WORKER
 ```
 
 Use the included `start-*.bat` script for the chosen profile; edit only its pool and wallet fields.
@@ -39,20 +39,20 @@ Use the included `start-*.bat` script for the chosen profile; edit only its pool
 3. Set your wallet and worker name.
 4. Run the script.
 
-A current NVIDIA driver is required for CUDA profiles. Full packages include CUDA runtime libraries; light packages use compatible libraries installed on the system.
+A current NVIDIA driver is required for CUDA profiles. The 1.1.0 release packages are full packages and include the CUDA runtime libraries needed by the bundled CUDA backend.
 
 ## Linux
 
 ```bash
-tar -xzf interminer-v1.1.0-linux-amd64-cuda.tar.gz
-cd interminer-v1.1.0-linux-amd64-cuda
+tar -xzf InterMiner-v1.1.0-linux-amd64.tar.gz
+cd InterMiner-v1.1.0-linux-amd64
 chmod +x InterMiner
 LD_LIBRARY_PATH="$PWD:${LD_LIBRARY_PATH}" ./InterMiner --help
 ```
 
 ## HiveOS
 
-Install the HiveOS archive through a Custom Miner flight sheet. The `Name` / `miner_alt` value must exactly match the root folder inside the archive; the release notes provide that value and the installation URL.
+Install the `InterMiner-v1.1.0-hiveos.tar.gz` archive through a Custom Miner flight sheet. Set `Name` and `miner_alt` to `InterMiner-v1.1.0`, exactly matching the archive root folder.
 
 ## Developer Fee
 

@@ -9,13 +9,13 @@ Binary releases are published in [BaikalMine/InterMiner](https://github.com/Baik
 
 ## Download
 
-Current release: [InterMiner v1.2.2](https://github.com/BaikalMine/InterMiner/releases/tag/v1.2.2)
+Current release: [InterMiner v1.2.4](https://github.com/BaikalMine/InterMiner/releases/tag/v1.2.4)
 
 | Platform | Asset |
 | --- | --- |
-| Windows x64 | `InterMiner-v1.2.2-win64-amd64.zip` |
-| Linux x64 | `InterMiner-v1.2.2-linux-amd64.tar.gz` |
-| HiveOS | `InterMiner-v1.2.2-hiveos.tar.gz` |
+| Windows x64 | `InterMiner-v1.2.4-win64-amd64.zip` |
+| Linux x64 | `InterMiner-v1.2.4-linux-amd64.tar.gz` |
+| HiveOS | `InterMiner-v1.2.4-hiveos.tar.gz` |
 
 ## Quick Start
 
@@ -83,6 +83,7 @@ after a hardfork.
 | `--keryxd-address` | Legacy alias for `--stratum` |
 | `-w`, `--wallet` | Wallet address, optionally followed by `.WORKER` |
 | `--mining-address` | Legacy alias for `--wallet` |
+| `--password PASSWORD` | Optional pool password; defaults to `x` |
 | `-t`, `--threads` | CPU mining threads; use `0` for GPU-only mining |
 | `--debug` | Enable detailed logging |
 | `--help` | Print all available commands |
@@ -126,8 +127,12 @@ InterMiner-cuda.exe -a cryptixhash --gpu 0,2 ^
 | `--cuda-workload VALUE` | Manually set the CUDA workload multiplier |
 | `--cuda-workload-absolute` | Treat workload values as absolute nonce counts |
 | `--autotune-cache FILE` | Store the auto-tune profile in a custom file |
+| `--no-autotune` | Disable adaptive CUDA, OpenCL, and PoM tuning |
 | `--no-autotune-cache` | Do not load or save auto-tune results for this run |
+| `--no-pom-autotune` | Disable adaptive PoM launch tuning only |
 | `--reset-autotune-cache` | Clear saved CUDA auto-tune profiles before starting |
+| `--resident-tree` | Keep the complete PoM proof tree in system RAM |
+| `--no-resident-tree` | Force the resident proof tree off |
 
 CUDA workload is tuned automatically per algorithm and GPU. Use a manual
 workload only when testing a known stable configuration.
@@ -174,22 +179,25 @@ For AMD mining, use `InterMiner.exe` with `--cuda-disable --opencl-enable`.
 
 Model selection applies only to `keryxhash`.
 
-| Option | VRAM class |
-| --- | --- |
-| `--very-light` | 6 GB |
-| `--light` | 8 GB |
-| Default | 12 GB |
-| `--high` | 24 GB |
-| `--very-high` | 32 GB |
-| `--gpu-models very-high,light,default` | Set a maximum tier per CUDA GPU |
+| Option | H5 model / VRAM | H6 model / VRAM |
+| --- | --- | --- |
+| `--very-light` | Qwen3-8B, 6 GB | Qwen3.5-9B, 8 GB |
+| `--light` | Mistral-7B, 8 GB | GLM-4-9B, 12 GB |
+| Default | GLM-4-9B, 12 GB | Gemma-4-12B, 16 GB |
+| `--high` | Qwen3.6-27B, 24 GB | Qwen3.6-27B, 24 GB |
+| `--very-high` | Kimi-Linear-48B, 32 GB | Kimi-Linear-48B, 32 GB |
+
+`--gpu-models very-high,light,default` sets a maximum tier per CUDA GPU.
+`--model-dir DIR` uses dedicated model storage.
 
 A selected tier is a maximum, not a forced upgrade. InterMiner can lower the
 tier when VRAM is insufficient, but it does not select a larger tier
 automatically.
 
 Models are verified before use. Missing current models are downloaded only
-after the pool sends DAA. Legacy model folders may remain on disk, but are not
-used by the active KeryxHash profile.
+after the pool sends DAA. Model directories that are not part of the active
+DAA-selected lineup are removed. Use `--model-dir` only with a directory
+dedicated to InterMiner.
 
 `--cpu-inference` explicitly runs OPoI inference on the CPU. This keeps the
 GPU available for hashing, but GPU inference is normally faster.
@@ -211,7 +219,7 @@ The API accepts loopback addresses only and cannot modify miner settings.
 
 ## Windows
 
-1. Download and extract `InterMiner-v1.2.2-win64-amd64.zip`.
+1. Download and extract `InterMiner-v1.2.4-win64-amd64.zip`.
 2. Edit the appropriate included `start-*.bat` file.
 3. Set the wallet and worker name.
 4. Run the script.
@@ -228,8 +236,8 @@ Requirements:
 - CUDA 12 runtime libraries.
 
 ```bash
-tar -xzf InterMiner-v1.2.2-linux-amd64.tar.gz
-cd InterMiner-v1.2.2-linux-amd64
+tar -xzf InterMiner-v1.2.4-linux-amd64.tar.gz
+cd InterMiner-v1.2.4-linux-amd64
 chmod +x InterMiner-cuda
 
 LD_LIBRARY_PATH="$PWD:${LD_LIBRARY_PATH}" ./InterMiner-cuda \
@@ -244,13 +252,13 @@ LD_LIBRARY_PATH="$PWD:${LD_LIBRARY_PATH}" ./InterMiner-cuda \
 Use this Custom Miner name:
 
 ```text
-InterMiner-v1.2.2
+InterMiner-v1.2.4
 ```
 
 Use this install URL:
 
 ```text
-https://github.com/BaikalMine/InterMiner/releases/download/v1.2.2/InterMiner-v1.2.2-hiveos.tar.gz
+https://github.com/BaikalMine/InterMiner/releases/download/v1.2.4/InterMiner-v1.2.4-hiveos.tar.gz
 ```
 
 In the HiveOS `Hash Algorithm` field, select one of:
@@ -261,8 +269,9 @@ cryptixhash
 ```
 
 HiveOS passes this selection to InterMiner as `--algorithm` and reports the
-same algorithm in miner statistics. The Flight Sheet supplies the pool URL and
-wallet automatically.
+same algorithm in miner statistics. Some HiveOS versions expose CryptixHash as
+`cryptix`; the Hive integration normalizes that alias to `cryptixhash`. The
+Flight Sheet supplies the pool URL and wallet automatically.
 
 Recommended NVIDIA user config:
 
@@ -283,17 +292,13 @@ when possible.
 
 ## BaikalMine Solo
 
-When mining solo on BaikalMine pools, InterMiner supports automatic Escrow
-reward claims.
-
-Do not share or delete `escrow.key`. It stores the local key required to claim
-these rewards.
+InterMiner supports Escrow rewards while mining solo on BaikalMine.
 
 ## Developer Fee
 
 | Algorithm | BaikalMine pools | Other pools |
 | --- | --- | --- |
-| KeryxHash | 1.5% | 3.0% |
+| KeryxHash | 1.0% | 2.0% |
 | CryptixHash | 0.75% | 1.0% |
 
 ## Notes

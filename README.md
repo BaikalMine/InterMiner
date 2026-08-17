@@ -7,15 +7,18 @@ InterMiner is a GPU miner with two independent mining profiles:
 
 Binary releases are published in [BaikalMine/InterMiner](https://github.com/BaikalMine/InterMiner/releases). Source code is maintained in [BaikalMine-Pools/b-miner](https://github.com/BaikalMine-Pools/b-miner).
 
+Keryx H6/H7 setup, including direct-solo certificates, is covered in the
+[Russian miner guide](docs/interminer-miner-guide-ru.md).
+
 ## Download
 
-Current release: [InterMiner v1.2.4](https://github.com/BaikalMine/InterMiner/releases/tag/v1.2.4)
+Current release: [InterMiner v1.2.5](https://github.com/BaikalMine/InterMiner/releases/tag/v1.2.5)
 
 | Platform | Asset |
 | --- | --- |
-| Windows x64 | `InterMiner-v1.2.4-win64-amd64.zip` |
-| Linux x64 | `InterMiner-v1.2.4-linux-amd64.tar.gz` |
-| HiveOS | `InterMiner-v1.2.4-hiveos.tar.gz` |
+| Windows x64 | `InterMiner-v1.2.5-win64-amd64.zip` |
+| Linux x64 | `InterMiner-v1.2.5-linux-amd64.tar.gz` |
+| HiveOS | `InterMiner-v1.2.5-hiveos.tar.gz` |
 
 ## Quick Start
 
@@ -131,11 +134,15 @@ InterMiner-cuda.exe -a cryptixhash --gpu 0,2 ^
 | `--no-autotune-cache` | Do not load or save auto-tune results for this run |
 | `--no-pom-autotune` | Disable adaptive PoM launch tuning only |
 | `--reset-autotune-cache` | Clear saved CUDA auto-tune profiles before starting |
-| `--resident-tree` | Keep the complete PoM proof tree in system RAM |
-| `--no-resident-tree` | Force the resident proof tree off |
+| `--resident-tree` | Keep the complete PoM proof tree in system RAM for lower solo proof latency |
+| `--no-resident-tree` | Force the resident proof tree off, including an environment override |
 
 CUDA workload is tuned automatically per algorithm and GPU. Use a manual
 workload only when testing a known stable configuration.
+
+The resident proof tree is disabled by default. It does not increase raw pool
+hashrate. It can reduce proof construction latency after a solo hit, at the
+cost of substantial system RAM, roughly twice the canonical model chunk data.
 
 ### NVIDIA clocks and power
 
@@ -188,7 +195,8 @@ Model selection applies only to `keryxhash`.
 | `--very-high` | Kimi-Linear-48B, 32 GB | Kimi-Linear-48B, 32 GB |
 
 `--gpu-models very-high,light,default` sets a maximum tier per CUDA GPU.
-`--model-dir DIR` uses dedicated model storage.
+`--model-dir DIR` uses dedicated model storage. On HiveOS, `--hiveos` keeps
+models and local claim state outside the versioned miner directory.
 
 A selected tier is a maximum, not a forced upgrade. InterMiner can lower the
 tier when VRAM is insufficient, but it does not select a larger tier
@@ -196,8 +204,8 @@ automatically.
 
 Models are verified before use. Missing current models are downloaded only
 after the pool sends DAA. Model directories that are not part of the active
-DAA-selected lineup are removed. Use `--model-dir` only with a directory
-dedicated to InterMiner.
+DAA-selected lineup are removed. For that reason, use `--model-dir` only with
+a directory dedicated to InterMiner.
 
 `--cpu-inference` explicitly runs OPoI inference on the CPU. This keeps the
 GPU available for hashing, but GPU inference is normally faster.
@@ -219,7 +227,7 @@ The API accepts loopback addresses only and cannot modify miner settings.
 
 ## Windows
 
-1. Download and extract `InterMiner-v1.2.4-win64-amd64.zip`.
+1. Download and extract `InterMiner-v1.2.5-win64-amd64.zip`.
 2. Edit the appropriate included `start-*.bat` file.
 3. Set the wallet and worker name.
 4. Run the script.
@@ -236,8 +244,8 @@ Requirements:
 - CUDA 12 runtime libraries.
 
 ```bash
-tar -xzf InterMiner-v1.2.4-linux-amd64.tar.gz
-cd InterMiner-v1.2.4-linux-amd64
+tar -xzf InterMiner-v1.2.5-linux-amd64.tar.gz
+cd InterMiner-v1.2.5-linux-amd64
 chmod +x InterMiner-cuda
 
 LD_LIBRARY_PATH="$PWD:${LD_LIBRARY_PATH}" ./InterMiner-cuda \
@@ -252,13 +260,13 @@ LD_LIBRARY_PATH="$PWD:${LD_LIBRARY_PATH}" ./InterMiner-cuda \
 Use this Custom Miner name:
 
 ```text
-InterMiner-v1.2.4
+InterMiner-v1.2.5
 ```
 
 Use this install URL:
 
 ```text
-https://github.com/BaikalMine/InterMiner/releases/download/v1.2.4/InterMiner-v1.2.4-hiveos.tar.gz
+https://github.com/BaikalMine/InterMiner/releases/download/v1.2.5/InterMiner-v1.2.5-hiveos.tar.gz
 ```
 
 In the HiveOS `Hash Algorithm` field, select one of:
@@ -279,6 +287,9 @@ Recommended NVIDIA user config:
 --threads 0 --cuda-no-blocking-sync
 ```
 
+Add `--password YOUR_PASSWORD` to the user config only when the pool requires
+a password. If omitted, InterMiner sends the traditional `x` default.
+
 Recommended AMD/OpenCL user config:
 
 ```text
@@ -286,20 +297,36 @@ Recommended AMD/OpenCL user config:
 ```
 
 A manually supplied `--algorithm` or `-a` in user config takes priority over
-the Hash Algorithm field. During upgrades, the HiveOS package searches older
-InterMiner and Keryx miner directories and migrates existing `models/` data
-when possible.
+the Hash Algorithm field. For KeryxHash, the HiveOS integration automatically
+uses `/hive/miners/custom/interminer-models`, outside the versioned miner directory. It
+searches older InterMiner and Keryx miner directories and migrates existing
+model data when possible. An explicit `--model-dir` takes priority.
 
 ## BaikalMine Solo
 
-InterMiner supports Escrow rewards while mining solo on BaikalMine.
+When mining solo on BaikalMine pools, InterMiner supports automatic Escrow
+reward claims.
+
+Keryx H6 direct-solo requires a delegation certificate bound to the payout
+wallet and the miner's local escrow key. InterMiner prints the public escrow
+key to authorize, accepts `--escrow-cert` or `--escrow-cert-file`, validates the
+certificate locally, and persists an explicit certificate for later starts.
+The payout address must belong to a wallet whose private key you control.
+
+InterMiner 1.2.5 is compatible with the H7 service-bond update. H7 does not
+require new miner command-line options. Pool and solo-node operators must use
+Keryx node `v1.4.8` or newer.
+
+Do not share or delete `escrow.key`. It stores the private local key required
+for direct-solo authorization and reward claims. See the
+[Russian Keryx guide](docs/interminer-miner-guide-ru.md) for the complete setup.
 
 ## Developer Fee
 
-| Algorithm | BaikalMine pools | Other pools |
-| --- | --- | --- |
-| KeryxHash | 1.0% | 2.0% |
-| CryptixHash | 0.75% | 1.0% |
+| Algorithm | BaikalMine pools | Direct solo node | Other pools |
+| --- | --- | --- | --- |
+| KeryxHash | 1.0% | 1.0% | 2.0% |
+| CryptixHash | 0.75% | Not applicable | 1.0% |
 
 ## Notes
 

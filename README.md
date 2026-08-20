@@ -1,24 +1,25 @@
 # InterMiner
 
-InterMiner is a GPU miner with two independent mining profiles:
+InterMiner is a GPU miner with independent mining profiles:
 
 - `keryxhash` for KeryxHash, OPoI, and PoM.
 - `cryptixhash` for CryptixHash v2 (OX8).
+- `zelhash` for CS Coin ZelHash (Equihash 125,4). The alias `cscoin` is also accepted.
 
 Binary releases are published in [BaikalMine/InterMiner](https://github.com/BaikalMine/InterMiner/releases). Source code is maintained in [BaikalMine-Pools/b-miner](https://github.com/BaikalMine-Pools/b-miner).
 
-Keryx H6/H7 setup, including direct-solo certificates, is covered in the
+Keryx H6-H8 setup, including direct-solo certificates, is covered in the
 [Russian miner guide](docs/interminer-miner-guide-ru.md).
 
 ## Download
 
-Current release: [InterMiner v1.2.5](https://github.com/BaikalMine/InterMiner/releases/tag/v1.2.5)
+Current release: [InterMiner v1.2.6](https://github.com/BaikalMine/InterMiner/releases/tag/v1.2.6)
 
 | Platform | Asset |
 | --- | --- |
-| Windows x64 | `InterMiner-v1.2.5-win64-amd64.zip` |
-| Linux x64 | `InterMiner-v1.2.5-linux-amd64.tar.gz` |
-| HiveOS | `InterMiner-v1.2.5-hiveos.tar.gz` |
+| Windows x64 | `InterMiner-v1.2.6-win64-amd64.zip` |
+| Linux x64 | `InterMiner-v1.2.6-linux-amd64.tar.gz` |
+| HiveOS | `InterMiner-v1.2.6-hiveos.tar.gz` |
 
 ## Quick Start
 
@@ -58,6 +59,20 @@ InterMiner.exe -a cryptixhash --cuda-disable --opencl-enable ^
   --threads 0
 ```
 
+### CS Coin ZelHash, NVIDIA CUDA or AMD OpenCL
+
+```bat
+InterMiner.exe -a zelhash ^
+  -s stratum+tcp://pool.cscloudservice.com:26125 ^
+  -w YOUR_CS_WALLET.YOUR_WORKER ^
+  --gpu 0,1 --threads 0
+```
+
+ZelHash automatically selects the native CUDA backend for NVIDIA and OpenCL for
+AMD. Each selected GPU needs at least 4 GB VRAM. Use `--cuda-disable
+--opencl-enable` to force the OpenCL fallback on NVIDIA. `--opencl-platform` can
+be used on systems with more than one OpenCL runtime.
+
 Replace `YOUR_WALLET` and `YOUR_WORKER` before starting the miner.
 
 ## Algorithms
@@ -66,9 +81,10 @@ Replace `YOUR_WALLET` and `YOUR_WORKER` before starting the miner.
 | --- | --- | --- |
 | `keryxhash` | KeryxHash mining profile | Enabled when required by the pool |
 | `cryptixhash` | CryptixHash v2 (OX8) pure PoW profile | Disabled |
+| `zelhash` | CS Coin ZelHash / Equihash 125,4 pure PoW profile | Disabled |
 
-`keryxhash` is the default algorithm. CryptixHash does not start OPoI, PoM,
-IPFS, Escrow, or model downloads.
+`keryxhash` is the default algorithm. CryptixHash and ZelHash do not start
+OPoI, PoM, IPFS, Escrow, or model downloads.
 
 For KeryxHash, InterMiner first connects to the pool and receives the current
 DAA. It then selects only the model set valid for that network era. Models are
@@ -81,7 +97,7 @@ after a hardfork.
 
 | Command | Description |
 | --- | --- |
-| `-a`, `--algorithm` | Algorithm: `keryxhash` or `cryptixhash` |
+| `-a`, `--algorithm` | Algorithm: `keryxhash`, `cryptixhash`, or `zelhash` (`cscoin` alias) |
 | `-s`, `--stratum` | Pool URL |
 | `--keryxd-address` | Legacy alias for `--stratum` |
 | `-w`, `--wallet` | Wallet address, optionally followed by `.WORKER` |
@@ -180,7 +196,9 @@ where possible.
 | `--opencl-amd-disable` | Disable AMD OpenCL mining |
 | `--opencl-no-amd-binary` | Do not use a precompiled AMD kernel |
 
-For AMD mining, use `InterMiner.exe` with `--cuda-disable --opencl-enable`.
+For AMD KeryxHash/CryptixHash mining, use `InterMiner.exe` with
+`--cuda-disable --opencl-enable`. ZelHash selects CUDA for NVIDIA and OpenCL for
+AMD automatically.
 
 ## KeryxHash Models
 
@@ -227,7 +245,7 @@ The API accepts loopback addresses only and cannot modify miner settings.
 
 ## Windows
 
-1. Download and extract `InterMiner-v1.2.5-win64-amd64.zip`.
+1. Download and extract `InterMiner-v1.2.6-win64-amd64.zip`.
 2. Edit the appropriate included `start-*.bat` file.
 3. Set the wallet and worker name.
 4. Run the script.
@@ -244,8 +262,8 @@ Requirements:
 - CUDA 12 runtime libraries.
 
 ```bash
-tar -xzf InterMiner-v1.2.5-linux-amd64.tar.gz
-cd InterMiner-v1.2.5-linux-amd64
+tar -xzf InterMiner-v1.2.6-linux-amd64.tar.gz
+cd InterMiner-v1.2.6-linux-amd64
 chmod +x InterMiner-cuda
 
 LD_LIBRARY_PATH="$PWD:${LD_LIBRARY_PATH}" ./InterMiner-cuda \
@@ -260,13 +278,13 @@ LD_LIBRARY_PATH="$PWD:${LD_LIBRARY_PATH}" ./InterMiner-cuda \
 Use this Custom Miner name:
 
 ```text
-InterMiner-v1.2.5
+InterMiner-v1.2.6
 ```
 
 Use this install URL:
 
 ```text
-https://github.com/BaikalMine/InterMiner/releases/download/v1.2.5/InterMiner-v1.2.5-hiveos.tar.gz
+https://github.com/BaikalMine/InterMiner/releases/download/v1.2.6/InterMiner-v1.2.6-hiveos.tar.gz
 ```
 
 In the HiveOS `Hash Algorithm` field, select one of:
@@ -274,12 +292,14 @@ In the HiveOS `Hash Algorithm` field, select one of:
 ```text
 keryxhash
 cryptixhash
+zelhash
 ```
 
 HiveOS passes this selection to InterMiner as `--algorithm` and reports the
 same algorithm in miner statistics. Some HiveOS versions expose CryptixHash as
-`cryptix`; the Hive integration normalizes that alias to `cryptixhash`. The
-Flight Sheet supplies the pool URL and wallet automatically.
+`cryptix`; the Hive integration normalizes that alias to `cryptixhash`.
+`cscoin` is normalized to `zelhash`. The Flight Sheet supplies the pool URL
+and wallet automatically.
 
 Recommended NVIDIA user config:
 
@@ -313,9 +333,9 @@ key to authorize, accepts `--escrow-cert` or `--escrow-cert-file`, validates the
 certificate locally, and persists an explicit certificate for later starts.
 The payout address must belong to a wallet whose private key you control.
 
-InterMiner 1.2.5 is compatible with the H7 service-bond update. H7 does not
-require new miner command-line options. Pool and solo-node operators must use
-Keryx node `v1.4.8` or newer.
+InterMiner 1.2.6 is compatible with the H8 network update. H8 does not require
+new miner command-line options. Pool and solo-node operators must use Keryx
+node `v1.5.0` or newer.
 
 Do not share or delete `escrow.key`. It stores the private local key required
 for direct-solo authorization and reward claims. See the
@@ -327,6 +347,7 @@ for direct-solo authorization and reward claims. See the
 | --- | --- | --- | --- |
 | KeryxHash | 1.0% | 1.0% | 2.0% |
 | CryptixHash | 0.75% | Not applicable | 1.0% |
+| CS Coin ZelHash | 0% | Not applicable | 0% |
 
 ## Notes
 
@@ -335,3 +356,4 @@ for direct-solo authorization and reward claims. See the
 - `Share accepted` confirms that the pool accepted a submitted share.
 - The console shows the current hashrate and a 60-second average. KeryxHash
   can temporarily pause GPU hashing while GPU inference is active.
+- ZelHash is reported in `Sol/s`; HiveOS receives the same per-GPU unit.

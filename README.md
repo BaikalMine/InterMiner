@@ -9,6 +9,7 @@ InterMiner is a GPU miner with independent mining profiles:
 Binary releases are published in [BaikalMine/InterMiner](https://github.com/BaikalMine/InterMiner/releases). Source code is maintained in [BaikalMine-Pools/b-miner](https://github.com/BaikalMine-Pools/b-miner).
 
 Current Keryx setup, including direct-solo certificates, is covered in the
+[English miner guide](docs/interminer-miner-guide-en.md) and
 [Russian miner guide](docs/interminer-miner-guide-ru.md).
 
 ## Download

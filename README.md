@@ -8,18 +8,18 @@ InterMiner is a GPU miner with independent mining profiles:
 
 Binary releases are published in [BaikalMine/InterMiner](https://github.com/BaikalMine/InterMiner/releases). Source code is maintained in [BaikalMine-Pools/b-miner](https://github.com/BaikalMine-Pools/b-miner).
 
-Keryx H6-H8 setup, including direct-solo certificates, is covered in the
+Current Keryx setup, including direct-solo certificates, is covered in the
 [Russian miner guide](docs/interminer-miner-guide-ru.md).
 
 ## Download
 
-Current release: [InterMiner v1.2.6](https://github.com/BaikalMine/InterMiner/releases/tag/v1.2.6)
+Current release: [InterMiner v1.2.7](https://github.com/BaikalMine/InterMiner/releases/tag/v1.2.7)
 
 | Platform | Asset |
 | --- | --- |
-| Windows x64 | `InterMiner-v1.2.6-win64-amd64.zip` |
-| Linux x64 | `InterMiner-v1.2.6-linux-amd64.tar.gz` |
-| HiveOS | `InterMiner-v1.2.6-hiveos.tar.gz` |
+| Windows x64 | `InterMiner-v1.2.7-win64-amd64.zip` |
+| Linux x64 | `InterMiner-v1.2.7-linux-amd64.tar.gz` |
+| HiveOS | `InterMiner-v1.2.7-hiveos.tar.gz` |
 
 ## Quick Start
 
@@ -73,6 +73,13 @@ AMD. Each selected GPU needs at least 4 GB VRAM. Use `--cuda-disable
 --opencl-enable` to force the OpenCL fallback on NVIDIA. `--opencl-platform` can
 be used on systems with more than one OpenCL runtime.
 
+When a pool enables CS Coin OPoI dispatch, add `--cs-opoi`. InterMiner then
+announces its verified model inventory after authorization, accepts
+`opoi.assign`, pauses ZelHash while inference owns the selected device, and
+returns `opoi.submit_result` over the same Stratum connection. This mode is
+off by default before the mainnet rollout. CS models use an isolated
+`cs-opoi` subdirectory and are not pruned when switching to KeryxHash.
+
 Replace `YOUR_WALLET` and `YOUR_WORKER` before starting the miner.
 
 ## Algorithms
@@ -81,10 +88,11 @@ Replace `YOUR_WALLET` and `YOUR_WORKER` before starting the miner.
 | --- | --- | --- |
 | `keryxhash` | KeryxHash mining profile | Enabled when required by the pool |
 | `cryptixhash` | CryptixHash v2 (OX8) pure PoW profile | Disabled |
-| `zelhash` | CS Coin ZelHash / Equihash 125,4 pure PoW profile | Disabled |
+| `zelhash` | CS Coin ZelHash / Equihash 125,4; pool OPoI is opt-in | Disabled unless `--cs-opoi` is set |
 
-`keryxhash` is the default algorithm. CryptixHash and ZelHash do not start
-OPoI, PoM, IPFS, Escrow, or model downloads.
+`keryxhash` is the default algorithm. CryptixHash and ordinary ZelHash do not
+start OPoI, PoM, IPFS, Escrow, or model downloads. ZelHash starts only the CS
+pool-dispatch inference path when `--cs-opoi` is explicitly set.
 
 For KeryxHash, InterMiner first connects to the pool and receives the current
 DAA. It then selects only the model set valid for that network era. Models are
@@ -103,6 +111,7 @@ after a hardfork.
 | `-w`, `--wallet` | Wallet address, optionally followed by `.WORKER` |
 | `--mining-address` | Legacy alias for `--wallet` |
 | `--password PASSWORD` | Optional pool password; defaults to `x` |
+| `--cs-opoi` | Enable pool-dispatched CS Coin inference with `zelhash` |
 | `-t`, `--threads` | CPU mining threads; use `0` for GPU-only mining |
 | `--debug` | Enable detailed logging |
 | `--help` | Print all available commands |
@@ -245,7 +254,7 @@ The API accepts loopback addresses only and cannot modify miner settings.
 
 ## Windows
 
-1. Download and extract `InterMiner-v1.2.6-win64-amd64.zip`.
+1. Download and extract `InterMiner-v1.2.7-win64-amd64.zip`.
 2. Edit the appropriate included `start-*.bat` file.
 3. Set the wallet and worker name.
 4. Run the script.
@@ -262,8 +271,8 @@ Requirements:
 - CUDA 12 runtime libraries.
 
 ```bash
-tar -xzf InterMiner-v1.2.6-linux-amd64.tar.gz
-cd InterMiner-v1.2.6-linux-amd64
+tar -xzf InterMiner-v1.2.7-linux-amd64.tar.gz
+cd InterMiner-v1.2.7-linux-amd64
 chmod +x InterMiner-cuda
 
 LD_LIBRARY_PATH="$PWD:${LD_LIBRARY_PATH}" ./InterMiner-cuda \
@@ -278,13 +287,13 @@ LD_LIBRARY_PATH="$PWD:${LD_LIBRARY_PATH}" ./InterMiner-cuda \
 Use this Custom Miner name:
 
 ```text
-InterMiner-v1.2.6
+InterMiner-v1.2.7
 ```
 
 Use this install URL:
 
 ```text
-https://github.com/BaikalMine/InterMiner/releases/download/v1.2.6/InterMiner-v1.2.6-hiveos.tar.gz
+https://github.com/BaikalMine/InterMiner/releases/download/v1.2.7/InterMiner-v1.2.7-hiveos.tar.gz
 ```
 
 In the HiveOS `Hash Algorithm` field, select one of:
@@ -333,9 +342,9 @@ key to authorize, accepts `--escrow-cert` or `--escrow-cert-file`, validates the
 certificate locally, and persists an explicit certificate for later starts.
 The payout address must belong to a wallet whose private key you control.
 
-InterMiner 1.2.6 is compatible with the H8 network update. H8 does not require
-new miner command-line options. Pool and solo-node operators must use Keryx
-node `v1.5.0` or newer.
+InterMiner 1.2.7 is compatible with the current Keryx network rules. The update
+does not require new miner command-line options. Pool and solo-node operators
+must use Keryx node `v1.5.1` or newer.
 
 Do not share or delete `escrow.key`. It stores the private local key required
 for direct-solo authorization and reward claims. See the

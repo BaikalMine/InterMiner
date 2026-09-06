@@ -18,39 +18,55 @@ Source code is maintained in
 ## Download
 
 Current pre-release:
-[InterMiner v1.2.8-2](https://github.com/BaikalMine/InterMiner/releases/tag/v1.2.8-2)
+[InterMiner v1.2.8-3](https://github.com/BaikalMine/InterMiner/releases/tag/v1.2.8-3)
 
 | Platform | Asset |
 | --- | --- |
-| Windows x64 | [InterMiner-v1.2.8-2-win64-amd64.zip](https://github.com/BaikalMine/InterMiner/releases/download/v1.2.8-2/InterMiner-v1.2.8-2-win64-amd64.zip) |
-| Linux x86-64 | [InterMiner-v1.2.8-2-linux-amd64.tar.gz](https://github.com/BaikalMine/InterMiner/releases/download/v1.2.8-2/InterMiner-v1.2.8-2-linux-amd64.tar.gz) |
-| HiveOS | [InterMiner-v1.2.8-2-hiveos.tar.gz](https://github.com/BaikalMine/InterMiner/releases/download/v1.2.8-2/InterMiner-v1.2.8-2-hiveos.tar.gz) |
-| SHA-256 checksums | [SHA256SUMS.txt](https://github.com/BaikalMine/InterMiner/releases/download/v1.2.8-2/SHA256SUMS.txt) |
+| Windows x64 | [InterMiner-v1.2.8-3-win64-amd64.zip](https://github.com/BaikalMine/InterMiner/releases/download/v1.2.8-3/InterMiner-v1.2.8-3-win64-amd64.zip) |
+| Linux x86-64 | [InterMiner-v1.2.8-3-linux-amd64.tar.gz](https://github.com/BaikalMine/InterMiner/releases/download/v1.2.8-3/InterMiner-v1.2.8-3-linux-amd64.tar.gz) |
+| HiveOS | [InterMiner-v1.2.8-3-hiveos.tar.gz](https://github.com/BaikalMine/InterMiner/releases/download/v1.2.8-3/InterMiner-v1.2.8-3-hiveos.tar.gz) |
+| SHA-256 checksums | [SHA256SUMS.txt](https://github.com/BaikalMine/InterMiner/releases/download/v1.2.8-3/SHA256SUMS.txt) |
 
-The v1.2.8-2 packages use the CUDA 12.8 universal build.
+The v1.2.8-3 packages use the CUDA 12.8 universal build.
 
-## What's New in v1.2.8-2
+## What's New in v1.2.8-3
 
-- PearlHash automatically selects the experimental `turing-fused` INT8 Tensor
-  Core path on SM75 GPUs, including RTX 20 and CMP 50HX.
-- Reduced PearlHash CPU load by fixing blocking waits for GPU completion and
-  table-prefetch events.
-- Fixed an out-of-bounds data-table mapping for smaller PearlHash matrices.
-- Normal Windows BAT profiles select the compute path automatically for the
-  GPU architecture instead of forcing an Ampere-only kernel.
-- Linux/HiveOS default CMP auto mode skips unsupported or mixed CMP fleets
-  before activation, allowing mining to continue. Explicit unsupported targets
-  and activation or verification failures still stop startup.
+PearlHash selects the experimental `compact-fused` kernel by default for the
+full materialized matrix on supported NVIDIA Tensor Core architectures:
+SM75, SM80, SM86, SM89, SM90, SM100/103, and SM120/121. This includes RTX
+20/30/40/50 and supported Turing, Ampere, Hopper, and Blackwell compute GPUs.
+These packages are x86-64 host builds, not ARM64 builds.
 
-The Turing PTX passed CPU/GPU proof and candidate-equivalence checks through
-JIT on an RTX 3090. Physical RTX 20 / CMP 50HX validation is still required;
-no measured hashrate gain on those cards is claimed yet. Other architecture
-defaults are unchanged.
+The new kernel uses a shared-memory transcript and a compact exact-integer
+Tensor Core loop. CPU/GPU proof validation remains enabled. Hardware-specific
+performance must be tested: RTX 3090 tests do not establish CMP 50HX, RTX
+40/50, H100/H200, or B200/B300 hashrates. No universal speedup is promised.
 
-To return to the previous WMMA path, set `INTERMINER_PEARL_KERNEL=legacy` in
-the miner's process environment. This is not a command-line argument.
-Automatic SM75 selection also falls back to WMMA if the full fused matrix
-does not fit available VRAM.
+Set the following variable in the miner process environment to compare paths:
+
+| Value of `INTERMINER_PEARL_KERNEL` | Behavior |
+| --- | --- |
+| `auto` | Compact kernel when the GPU and full matrix layout are eligible |
+| `compact-fused` | Require the compact full-matrix kernel; incompatible settings fail |
+| `direct-fused` | Previous non-compact fused kernel on supported architectures |
+| `turing-fused` | Previous SM75 fused kernel, RTX 20 / CMP 50HX only |
+| `legacy` | WMMA compatibility path on Tensor Core GPUs |
+
+For Windows CMD, use `set INTERMINER_PEARL_KERNEL=direct-fused` before the
+mining command. On Linux, prefix the command with
+`INTERMINER_PEARL_KERNEL=direct-fused`. Remove the override or use `auto`
+to restore the pre-release default. Existing BAT files with explicit kernel
+overrides keep those overrides.
+
+Automatic selection retains the smaller-memory fallback when the full fused
+matrix cannot fit. Custom matrix sizes and reduced-memory profiles retain
+their existing non-compact paths. Pascal/Volta compatibility paths remain.
+
+The earlier blocking-wait CPU-load and matrix packing fixes are retained.
+Linux/HiveOS CMP auto mode skips unsupported or mixed fleets without
+attempting activation. Explicit unsupported targets and activation or
+verification errors still fail. This release does not expand the CMP unlock
+allowlist or change clocks, power limits, fan settings, or developer fees.
 
 CMP unlock remains Linux x86-64 only and restricted to the bundled provider's
 validated profiles. Windows CMP unlock is not included. Temporary activation
@@ -197,7 +213,7 @@ fallback.
 
 ## Windows
 
-1. Download and extract `InterMiner-v1.2.8-2-win64-amd64.zip`.
+1. Download and extract `InterMiner-v1.2.8-3-win64-amd64.zip`.
 2. Edit the appropriate included `start-*.bat` file.
 3. Set the wallet, worker name, pool, and GPU list.
 4. Run the script.
@@ -214,8 +230,8 @@ Requirements:
 - The CUDA Toolkit math libraries only when optional CS Coin OPoI is enabled.
 
 ```bash
-tar -xzf InterMiner-v1.2.8-2-linux-amd64.tar.gz
-cd InterMiner-v1.2.8-2-linux-amd64
+tar -xzf InterMiner-v1.2.8-3-linux-amd64.tar.gz
+cd InterMiner-v1.2.8-3-linux-amd64
 chmod +x InterMiner
 
 LD_LIBRARY_PATH="$PWD:${LD_LIBRARY_PATH}" ./InterMiner \
@@ -235,13 +251,13 @@ cuBLASLt, or cuRAND. Optional `--cs-opoi` requires those system libraries.
 Use this Custom Miner name:
 
 ```text
-InterMiner-v1.2.8-2
+InterMiner-v1.2.8-3
 ```
 
 Install URL:
 
 ```text
-https://github.com/BaikalMine/InterMiner/releases/download/v1.2.8-2/InterMiner-v1.2.8-2-hiveos.tar.gz
+https://github.com/BaikalMine/InterMiner/releases/download/v1.2.8-3/InterMiner-v1.2.8-3-hiveos.tar.gz
 ```
 
 Supported `Hash Algorithm` values:
@@ -263,7 +279,7 @@ The following text can be used as the PearlHash Custom Miner flight-sheet
 configuration. Its wallet ID must exist in the target HiveOS account.
 
 ```json
-{"name":"InterMiner","isFavorite":false,"items":[{"coin":"PRL","pool_ssl":false,"wal_id":11120435,"dpool_ssl":false,"miner":"custom","miner_alt":"InterMiner-v1.2.8-2","miner_config":{"url":"pearl-ru2.baikalmine.com:2010","miner":"InterMiner-v1.2.8-2","template":"%WAL%.%WORKER_NAME%","install_url":"https://github.com/BaikalMine/InterMiner/releases/download/v1.2.8-2/InterMiner-v1.2.8-2-hiveos.tar.gz","user_config":"-a pearlhash"},"pool_geo":[]}]}
+{"name":"InterMiner","isFavorite":false,"items":[{"coin":"PRL","pool_ssl":false,"wal_id":11120435,"dpool_ssl":false,"miner":"custom","miner_alt":"InterMiner-v1.2.8-3","miner_config":{"url":"pearl-ru2.baikalmine.com:2010","miner":"InterMiner-v1.2.8-3","template":"%WAL%.%WORKER_NAME%","install_url":"https://github.com/BaikalMine/InterMiner/releases/download/v1.2.8-3/InterMiner-v1.2.8-3-hiveos.tar.gz","user_config":"-a pearlhash"},"pool_geo":[]}]}
 ```
 
 ## Developer Fee
